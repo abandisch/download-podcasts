@@ -30,9 +30,9 @@ def main():
       makedirs(downloadsPath)
 
     # Get the feed URL
-    feed = "http://podcastfeeds.nbcnews.com/drone/api/query/audio/podcast/1.0/MSNBC-MADDOW-NETCAST-MP3.xml"
+    # feed = "http://podcastfeeds.nbcnews.com/drone/api/query/audio/podcast/1.0/MSNBC-MADDOW-NETCAST-MP3.xml"
     # feed = "http://joeroganexp.joerogan.libsynpro.com/rss"
-    # feed = input("Enter the feed xml url: ")
+    feed = input("Enter the feed xml url: ")
 
     # Parse the feed URL
     NewsFeed = feedparser.parse(feed)
