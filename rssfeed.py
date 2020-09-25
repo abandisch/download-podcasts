@@ -1,6 +1,7 @@
 import feedparser
 from io import StringIO
 from html.parser import HTMLParser
+from os import path, makedirs
 import re
 import requests
 import datetime
@@ -19,6 +20,15 @@ class MLStripper(HTMLParser):
 
 def main():
   try:
+    # Check to see if downloads directory exists
+    downloadsPath = 'downloads'
+    downloadsDirExists = path.exists(downloadsPath) and path.isdir(downloadsPath)
+
+    # if not, create downloads directory
+    if not downloadsDirExists:
+      print('  the "%s" folder doesnt exist. Creating it now ... ' % downloadsPath)
+      makedirs(downloadsPath)
+
     # feed = "http://podcastfeeds.nbcnews.com/drone/api/query/audio/podcast/1.0/MSNBC-MADDOW-NETCAST-MP3.xml"
     feed = "http://joeroganexp.joerogan.libsynpro.com/rss"
     # feed = input("Enter the feed xml url: ")
