@@ -23,7 +23,8 @@ def main():
     # http://joeroganexp.joerogan.libsynpro.com/rss
 
     # Get the feed URL
-    feed = input("Enter the feed xml url (e.g. http://podcastdomain.com/path/to/file.xml): ")
+    feed = "http://joeroganexp.joerogan.libsynpro.com/rss"
+    # feed = input("Enter the feed xml url (e.g. http://podcastdomain.com/path/to/file.xml): ")
 
     # Check if feed is vaild URL
     parsedUrl = urlparse(feed)
