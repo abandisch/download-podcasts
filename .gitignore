@@ -4,3 +4,4 @@ downloads
 .venv
 venv
 env
+.DS_Store
