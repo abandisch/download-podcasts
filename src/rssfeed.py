@@ -81,7 +81,7 @@ def main():
       pp = pprint.PrettyPrinter(indent=4)
       if parsedFromParser:
         for ep in parsedFromParser["episodes"]:
-          print("~~~~~~~~~~~~LINK~~~~~~~~~~",pp.pprint(ep))
+          # print("~~~~~~~~~~~~LINK~~~~~~~~~~",pp.pprint(ep))
           possible_enclosures = ep["enclosures"]
           # TODO create a method that will check to see if something is a url ending in an "mp3" or similar link.
 
@@ -108,7 +108,7 @@ def main():
           # r = requests.get(x.links[0].href, allow_redirects=True)
           # open(filename, 'wb').write(r.content)
           ep_count = ep_count + 1
-          print('done', filename)
+          print('done')
           # TODO handle if parsedfromparser doesn't exist
     except Exception as error:
       print('Nested Exception parsedFromParser error', error, 'parsedFromParser', pprint.pformat(parsedFromParser, indent=2, sort_dicts=True))
@@ -126,7 +126,7 @@ def main():
     #   print('Nested Exception newsfeed error', error, 'NewsFeed', NewsFeed)
 
   except Exception as error:
-    print("Error:", error, parsedFromParser, 'catch', 'normalized', normalized_feed)
+    print("Error:", error, parsedFromParser, 'catch')
 
 if __name__ == "__main__":
   main()
