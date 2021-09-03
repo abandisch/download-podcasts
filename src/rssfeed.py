@@ -29,10 +29,10 @@ def main():
     # Get the feed URL
     # feed = "http://joeroganexp.joerogan.libsynpro.com/rss"
     title = input('Enter the Podcast name: ')
-    feed = input("Enter the feed xml url (e.g. http://podcastdomain.com/path/to/file.xml): ")
+    feed = input("Enter the feed xml url (e.g. http://podcastdomain.com/path/to/file.xml and not feed:http://): ")
 
-    # Check if feed is vaild URL
-    parsedUrl = urlparse(feed)
+    # TODO restore this Check if feed is vaild URL
+    # parsedUrl = urlparse(feed)
 
     # Check to see if parsedUrl.scheme, parsedUrl.netloc and parsedUrl.path have values
     # if parsedUrl.scheme == "" or parsedUrl.netloc == "" or parsedUrl.path == "":
@@ -43,19 +43,23 @@ def main():
     # Parse the feed URL
     # ProtoNewsFeed = feedparser.parse('feed:' + feed)
     # NewsFeed = ProtoNewsFeed['feed']
+
+    # NOTE FEED should be http and not feed:http
     parsedFromParser = podcastparser.parse(feed, urllib.request.urlopen(feed))
-    NewsFeed = feedparser.parse(feed)
+  
+
+      # NewsFeed = feedparser.parse(feed)
   
     # print('done &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&', )
 
     # Check to see Channel and Title exist
-    print('  Confirming valid title ...', end = '')
-    if title.__len__ == 0:
-      if type(NewsFeed) is not dict or not NewsFeed.has_key('channel'):
-        # if not, throw an exception
-        raise Exception("Invalid channel or title", NewsFeed)
-      else:
-        title = NewsFeed['channel']['title']
+    # print('  Confirming valid title ...', end = '')
+    # if title.__len__ == 0:
+    #   if type(NewsFeed) is not dict or not NewsFeed.has_key('channel'):
+    #     # if not, throw an exception
+    #     raise Exception("Invalid channel or title", NewsFeed)
+    #   else:
+    #     title = NewsFeed['channel']['title']
     
 
     # Get the Channel Title
@@ -75,34 +79,37 @@ def main():
     try:
       ep_count = 1
       pp = pprint.PrettyPrinter(indent=4)
-      
-      for ep in parsedFromParser["episodes"]:
-        # print("~~~~~~~~~~~~LINK~~~~~~~~~~",pp.pprint(ep))
-        possible_enclosures = ep["enclosures"]
+      if parsedFromParser:
+        for ep in parsedFromParser["episodes"]:
+          print("~~~~~~~~~~~~LINK~~~~~~~~~~",pp.pprint(ep))
+          possible_enclosures = ep["enclosures"]
+          # TODO create a method that will check to see if something is a url ending in an "mp3" or similar link.
 
-        if possible_enclosures:
-          list_of_ep = ep["enclosures"]
-          link = list_of_ep[0]["url"]
-          r = requests.get(link, allow_redirects=True)
-        
-        if ep["title"]:
-          filename = ep["title"] + ".mp3"
-        elif parsedFromParser["description"]:
-          filename = parsedFromParser["description"] + '-{ep_count}' ".mp3"
-        else:
-          filename = '{ep_count}.mp3'
+          if possible_enclosures:
+            list_of_ep = ep["enclosures"]
+            link = list_of_ep[0]["url"]
+            r = requests.get(link, allow_redirects=True)
+          
+          # TODO we should get the extension of the file of the url and use it rather than manually setting mp3
+          if ep["title"]:
+            filename = ep["title"] + ".mp3"
+          elif parsedFromParser["description"]:
+            filename = parsedFromParser["description"] + '-{ep_count}' ".mp3"
+          else:
+            filename = '{ep_count}.mp3'
 
-        # TODO For next time, sanitize file names
-        # TODO get podcast actually working - ep link should end in mp3
+          # TODO For next time, sanitize file names
+          # TODO get podcast actually working - ep link should end in mp3
 
-        open(channelTitlePath + "/" + filename, 'wb').write(r.content)
-        # titleDateObj = datetime.datetime.strptime(x.published, '%a, %d %b %Y %H:%M:%S %z')
-        # filename = channelTitlePath + "/" + str(titleDateObj.date()) + " - " + x.title + ".mp3"
-        # print('  downloading filename: %s ... ' % filename, end = '')
-        # r = requests.get(x.links[0].href, allow_redirects=True)
-        # open(filename, 'wb').write(r.content)
-        ep_count = ep_count + 1
-        print('done', filename)
+          open(channelTitlePath + "/" + filename, 'wb').write(r.content)
+          # titleDateObj = datetime.datetime.strptime(x.published, '%a, %d %b %Y %H:%M:%S %z')
+          # filename = channelTitlePath + "/" + str(titleDateObj.date()) + " - " + x.title + ".mp3"
+          # print('  downloading filename: %s ... ' % filename, end = '')
+          # r = requests.get(x.links[0].href, allow_redirects=True)
+          # open(filename, 'wb').write(r.content)
+          ep_count = ep_count + 1
+          print('done', filename)
+          # TODO handle if parsedfromparser doesn't exist
     except Exception as error:
       print('Nested Exception parsedFromParser error', error, 'parsedFromParser', pprint.pformat(parsedFromParser, indent=2, sort_dicts=True))
 
@@ -119,7 +126,7 @@ def main():
     #   print('Nested Exception newsfeed error', error, 'NewsFeed', NewsFeed)
 
   except Exception as error:
-    print("Error: %s" % error, parsedFromParser, 'catch')
+    print("Error:", error, parsedFromParser, 'catch', 'normalized', normalized_feed)
 
 if __name__ == "__main__":
   main()
