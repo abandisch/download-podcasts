@@ -12,14 +12,13 @@ from urllib.parse import urlparse
 import pprint
 # from json import load, loads
 
-def check_if_file_link(poss_link):
-  if poss_link:
-    # check if poss_link has mp3, other audio ends at the end
-    poss_link
 
 def get_ending(linkname):
   if linkname:
     split_link = linkname.split(".")
+    ending = split_link[-1]
+    print('ENDING FOUND', ending)
+    return (ending, split_link)
     # get last el of the string
 
 def download_file(url, filename):
@@ -28,6 +27,22 @@ def download_file(url, filename):
             shutil.copyfileobj(r.raw, f)
   return True
 
+def check_if_file_is_audio_link(poss_link):
+  if poss_link:
+    # NOTE derived from https://en.wikipedia.org/wiki/Audio_file_format
+    audio_formats = ["3gp", "aac", "act", "aiff", "alac", "amr", "flac", "m4a", "m4b", "mp3", "mp4", "mpc", "mogg", "oga", "ogg", "tta", "wav", "wv"]
+    formatted = get_ending(poss_link)
+    ending = formatted[0]
+
+    # TODO use regex to check for the items above? this doesn't work of there's a tracking query string at the end of the url
+    raw_url = formatted[1]
+
+    for format in audio_formats:
+      if ending == format:
+        return ending
+    
+    return None
+      
 
 def main():
   try:
@@ -104,20 +119,26 @@ def main():
           # TODO we should get the extension of the file of the url and use it rather than manually setting mp3
           
           if ep["title"]:
-            filename = ep["title"] + ".mp3"
+            filename = ep["title"] #+ ".mp3"
           elif parsedFromParser["description"]:
-            filename = parsedFromParser["description"] + '-{ep_count}' ".mp3"
+            filename = parsedFromParser["description"] + '-{}'.format(ep_count) #".mp3"
           else:
             filename = " %d " % (ep_count)
 
           if possible_enclosures:
-            list_of_ep = ep["enclosures"]
-            link = list_of_ep[0]["url"]
-            download_file(link, channelTitlePath + "/" + filename)
+            list_of_enclosures = ep["enclosures"]
+            last_enclosure = ''
+            for enclosure in list_of_enclosures:
+              maybe_url = enclosure.get('url', None)
+              if maybe_url != last_enclosure:
+                ending = check_if_file_is_audio_link(maybe_url)
+                if ending:
+                  link = maybe_url
+                download_file(link, channelTitlePath + "/" + filename + "." + ending)
+                last_enclosure = maybe_url
           
 
           # TODO For next time, sanitize file names
-          # TODO create a method that will check to see if something is a url ending in an "mp3" or similar link.
           # TODO handle erroring out when link doesn't end in an audio file extension
 
 
