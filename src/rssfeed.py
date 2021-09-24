@@ -15,10 +15,21 @@ import pprint
 
 def get_ending(linkname):
   if linkname:
-    split_link = linkname.split(".")
+    # Handle cases with a query string ie. pod.com/somefile.mp3?=someotherquery
+    sanitize_link = linkname.split('/')
+    # print('SANITY LINK', sanitize_link)
+    sanitized_link = sanitize_link[-1]
+    # print('SED~~~~~~~~~~~~~', sanitized_link)
+    split_link = sanitized_link.split(".")
     ending = split_link[-1]
+    q_mark_found = ending.find("?")
+    if q_mark_found != -1:
+      remove_querystring = ending.split("?")
+      sanitized_ending = remove_querystring[0]
+      print("SANITIZED ENDING FOUND", sanitized_ending)
+      return sanitized_ending
     print('ENDING FOUND', ending)
-    return (ending, split_link)
+    return ending
     # get last el of the string
 
 def download_file(url, filename):
@@ -31,11 +42,9 @@ def check_if_file_is_audio_link(poss_link):
   if poss_link:
     # NOTE derived from https://en.wikipedia.org/wiki/Audio_file_format
     audio_formats = ["3gp", "aac", "act", "aiff", "alac", "amr", "flac", "m4a", "m4b", "mp3", "mp4", "mpc", "mogg", "oga", "ogg", "tta", "wav", "wv"]
-    formatted = get_ending(poss_link)
-    ending = formatted[0]
+    ending = get_ending(poss_link)
 
-    # TODO use regex to check for the items above? this doesn't work of there's a tracking query string at the end of the url
-    raw_url = formatted[1]
+    # TODO it would be nice to use regex to check for the items above? 
 
     for format in audio_formats:
       if ending == format:
@@ -72,7 +81,7 @@ def main():
     #   # if not, throw an exception
     #   raise Exception("Invalid URL: %s parsed is %s scheme is %s netloc is %s path is %s" % (feed, parsedUrl, parsedUrl.scheme, parsedUrl.netloc, parsedUrl.path))
 
-    print('  parsing URL ...', end = '')
+    # print('  parsing URL ...', end = '')
     # Parse the feed URL
     # ProtoNewsFeed = feedparser.parse('feed:' + feed)
     # NewsFeed = ProtoNewsFeed['feed']
@@ -114,7 +123,7 @@ def main():
       pp = pprint.PrettyPrinter(indent=4)
       if parsedFromParser:
         for ep in parsedFromParser["episodes"]:
-          print("~~~~~~~~~~~~~~~~~~~~~~~~~~~EP~~~~~~~~~~~~~~~~~~~~~~",pp.pprint(ep.get("enclosures", 'No Enclosures Found')))
+          # print("~~~~~~~~~~~~~~~~~~~~~~~~~~~EP~~~~~~~~~~~~~~~~~~~~~~",pp.pprint(ep.get("enclosures", 'No Enclosures Found')))
           possible_enclosures = ep.get("enclosures", None)
           # TODO we should get the extension of the file of the url and use it rather than manually setting mp3
           
