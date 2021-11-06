@@ -78,11 +78,13 @@ class RssFeed():
             possible_enclosures = ep.get("enclosures", None)
             
             if ep["title"]:
-              filename = ep["title"]
+              found_filename = ep["title"]
             elif parsedFromParser["description"]:
-              filename = parsedFromParser["description"] + '-{}'.format(ep_count)
+              found_filename = parsedFromParser["description"] + '-{}'.format(ep_count)
             else:
-              filename = " %d " % (ep_count)
+              found_filename = " %d " % (ep_count)
+            
+            filename = self.__sanitize_filename(found_filename)
 
             if possible_enclosures:
               list_of_enclosures = ep["enclosures"]
@@ -97,8 +99,7 @@ class RssFeed():
                   last_enclosure = maybe_url
             
 
-            # TODO For next time, sanitize file names removing /
-            # TODO handle erroring out when link doesn't end in an audio file extension
+            
 
 
             # TODO Get the date and time of publication and if it exists, add it to the
@@ -159,17 +160,66 @@ class RssFeed():
   
   def __remove_feed_from_url(self, url):
     if url:
-      conv_url = str(url)
-      # TODO this could easily be cleaner with regex
+      try:
+        conv_url = str(url)
+        # TODO this could easily be cleaner with regex
 
-      check_for_feed = conv_url[0:4].lower()
-      print("FEED", check_for_feed)
-      if check_for_feed == 'feed':
-        new_url = url[5:]
-        print('NEW URL', new_url)
-        return new_url
-      else:
-        return url
+        check_for_feed = conv_url[0:4].lower()
+        print("FEED", check_for_feed)
+        if check_for_feed == 'feed':
+          new_url = url[5:]
+          print('NEW URL', new_url)
+          return new_url
+        else:
+          return url
+      except Exception as error:
+        print('[RssFeed].__remove_feed_from_url - error', error)
+        raise Exception(error)
+  
+  def __sanitize_filename(self, filename):
+    if filename:
+      try:
+        print('filename', filename)
+        # TODO this could easily be cleaner with regex
+        updated_filename = str(filename)
+        found_slash = updated_filename.find("/")
+        if found_slash:
+          updated_filename = updated_filename.replace("/", " ", -1)
+        
+        found_quote = updated_filename.find("'")
+        if found_quote:
+          # TODO single quote replacement does not currently work
+          print("single quote found")
+          updated_filename = updated_filename.replace('\'', "", -1)
+        
+        found_comma = updated_filename.find(",")
+        if found_comma:
+          updated_filename = updated_filename.replace(",", "", -1)
+        
+        found_semicolon = updated_filename.find(";")
+        if found_semicolon:
+          updated_filename = updated_filename.replace(";", "", -1)
+        
+        found_exclamation = updated_filename.find("!")
+        if found_exclamation:
+          updated_filename = updated_filename.replace("!", "", -1)
+        
+        found_colon = updated_filename.find(":")
+        if found_colon:
+          updated_filename = updated_filename.replace(":", "", -1)
+        
+        # found_fquote = updated_filename.find("""'""")
+        # if found_fquote:
+        #   updated_filename = updated_filename.replace("""'""", "", -1)
+        
+        return updated_filename
+
+      except Exception as error:
+        print('[RssFeed].__sanitize_filename', error)
+        raise Exception('[RssFeed].__sanitize_filename' + error)
+    else:
+      raise Exception('[RssFeed].__sanitize_filename - filename not found')
+
 
 if __name__ == "__main__":
   new_path = "downthemall"
