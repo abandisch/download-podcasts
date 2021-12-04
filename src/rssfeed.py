@@ -85,7 +85,7 @@ class RssFeed():
               found_filename = " %d " % (ep_count)
             
             filename = self.__sanitize_filename(found_filename)
-
+            print('FILENAME', filename)
             if possible_enclosures:
               list_of_enclosures = ep["enclosures"]
               last_enclosure = ''
@@ -95,7 +95,7 @@ class RssFeed():
                   ending = self.__check_if_file_is_audio_link(maybe_url)
                   if ending:
                     link = maybe_url
-                  self.__download_file(link, channelTitlePath + "/" + filename + "." + ending)
+                    self.__download_file(link, channelTitlePath + "/" + filename + "." + ending)
                   last_enclosure = maybe_url
             
 
@@ -121,18 +121,16 @@ class RssFeed():
 
   def __check_if_file_is_audio_link(self, poss_link):
     if poss_link:
-      # NOTE derived from https://en.wikipedia.org/wiki/Audio_file_format
+      # NOTE list derived from https://en.wikipedia.org/wiki/Audio_file_format
       audio_formats = ["3gp", "aac", "act", "aiff", "alac", "amr", "flac", "m4a", "m4b", "mp3", "mp4", "mpc", "mogg", "oga", "ogg", "tta", "wav", "wv"]
-      ending = self.__get_ending(poss_link)
-      # TODO it would be nice to use regex to check for the items but this doesn't work? 
-      # poss_audio = re.search("\b(3gp|aac|act|aiff|alac|amr|flac|m4a|m4b|mp3|mp4|mpc|mogg|oga|ogg|tta|wav|wv)\w*\b", ending)
-      # print('AUDDDOOOO', poss_audio, ending)
+      valid_extensions_regex = ""
+      for ext in audio_formats:
+        valid_extensions_regex = valid_extensions_regex + "\." + str(ext) + "$|"
       
-      for format in audio_formats:
-        if ending == format:
-          return ending
-      
-      return None
+      valid_extensions_regex = valid_extensions_regex[:-1]
+
+      # NOTE should return boolean.
+      return bool(re.search(valid_extensions_regex, poss_link, flags=re.IGNORECASE))
   
   def __download_file(self, url, filename):
     with requests.get(url, stream=True) as r:
@@ -140,23 +138,23 @@ class RssFeed():
               shutil.copyfileobj(r.raw, f)
     return True
   
-  def __get_ending(self, linkname):
-    if linkname:
-      # Handle cases with a query string ie. pod.com/somefile.mp3?=someotherquery
-      sanitize_link = linkname.split('/')
-      # print('SANITY LINK', sanitize_link)
-      sanitized_link = sanitize_link[-1]
-      # print('SED~~~~~~~~~~~~~', sanitized_link)
-      split_link = sanitized_link.split(".")
-      ending = split_link[-1]
-      q_mark_found = ending.find("?")
-      if q_mark_found != -1:
-        remove_querystring = ending.split("?")
-        sanitized_ending = remove_querystring[0]
-        # print("SANITIZED ENDING FOUND", sanitized_ending)
-        return sanitized_ending
-      # print('ENDING FOUND', ending)
-      return ending
+  # def __get_ending(self, linkname):
+  #   if linkname:
+  #     # Handle cases with a query string ie. pod.com/somefile.mp3?=someotherquery
+  #     sanitize_link = linkname.split('/')
+  #     # print('SANITY LINK', sanitize_link)
+  #     sanitized_link = sanitize_link[-1]
+  #     # print('SED~~~~~~~~~~~~~', sanitized_link)
+  #     split_link = sanitized_link.split(".")
+  #     ending = split_link[-1]
+  #     q_mark_found = ending.find("?")
+  #     if q_mark_found != -1:
+  #       remove_querystring = ending.split("?")
+  #       sanitized_ending = remove_querystring[0]
+  #       # print("SANITIZED ENDING FOUND", sanitized_ending)
+  #       return sanitized_ending
+  #     # print('ENDING FOUND', ending)
+  #     return ending
   
   def __remove_feed_from_url(self, url):
     if url:
@@ -179,43 +177,14 @@ class RssFeed():
   def __sanitize_filename(self, filename):
     if filename:
       try:
-        print('filename', filename)
-        # TODO this could easily be cleaner with regex
-        updated_filename = str(filename)
-        found_slash = updated_filename.find("/")
-        if found_slash:
-          updated_filename = updated_filename.replace("/", " ", -1)
-        
-        found_quote = updated_filename.find("'")
-        if found_quote:
-          # TODO single quote replacement does not currently work
-          print("single quote found")
-          updated_filename = updated_filename.replace('\'', "", -1)
-        
-        found_comma = updated_filename.find(",")
-        if found_comma:
-          updated_filename = updated_filename.replace(",", "", -1)
-        
-        found_semicolon = updated_filename.find(";")
-        if found_semicolon:
-          updated_filename = updated_filename.replace(";", "", -1)
-        
-        found_exclamation = updated_filename.find("!")
-        if found_exclamation:
-          updated_filename = updated_filename.replace("!", "", -1)
-        
-        found_colon = updated_filename.find(":")
-        if found_colon:
-          updated_filename = updated_filename.replace(":", "", -1)
-        
-        # found_fquote = updated_filename.find("""'""")
-        # if found_fquote:
-        #   updated_filename = updated_filename.replace("""'""", "", -1)
+        orig_filename = str(filename)
+        first_name= re.sub(r'[\'!;,:"\\/]', '', orig_filename, flags=re.IGNORECASE)
+        updated_filename = re.sub('\.(?=.*\.)', '', first_name, flags=re.IGNORECASE)
         
         return updated_filename
 
       except Exception as error:
-        print('[RssFeed].__sanitize_filename', error)
+        # print('[RssFeed].__sanitize_filename', error)
         raise Exception('[RssFeed].__sanitize_filename' + error)
     else:
       raise Exception('[RssFeed].__sanitize_filename - filename not found')
