@@ -87,17 +87,22 @@ class RssFeed():
             print('FILENAME', filename)
             if possible_enclosures:
               list_of_enclosures = ep["enclosures"]
+              # TODO use list comprehension to handle iterating through all but the last one
               last_enclosure = ''
               for enclosure in list_of_enclosures:
+                
                 maybe_url = enclosure.get('url', None)
+                #print('enclosure', enclosure, "maybe_url", maybe_url, "last enc", last_enclosure)
                 if maybe_url != last_enclosure:
+                  # print("maybe check passed")
                   ending = self.__check_if_file_is_audio_link(maybe_url)
                   if ending:
+                   # print('ending check passed')
                     link = maybe_url
                     # print("DOWNLOAD", link, "channel", channelTitlePath, "ending", ending)
                     self.__download_file(link, channelTitlePath + "/" + filename + "." + ending)
                   else:
-                    raise Exception("ERROR FINDING ENDING", ending)
+                    raise Exception("ERROR FINDING ENDING", ending, list_of_enclosures)
                   last_enclosure = maybe_url
             
             # TODO Get the date and time of publication and if it exists, add it to the
@@ -120,6 +125,16 @@ class RssFeed():
 
   def __check_if_file_is_audio_link(self, poss_link: str) -> Optional[str]:
     if poss_link:
+      link = poss_link
+      print("check if file is audio", poss_link)
+      # handles query string cases
+      if poss_link.find("?") != -1:
+        
+        split_link = poss_link.split("?")
+        if len(split_link) > 0:
+          link = split_link[0]
+        print("poss_link find passed", link, "split", split_link)
+
       # NOTE list derived from https://en.wikipedia.org/wiki/Audio_file_format
       audio_formats = ["3gp", "aac", "act", "aiff", "alac", "amr", "flac", "m4a", "m4b", "mp3", "mp4", "mpc", "mogg", "oga", "ogg", "tta", "wav", "wv"]
       valid_extensions_regex = ""
@@ -128,7 +143,7 @@ class RssFeed():
       
       valid_extensions_regex = valid_extensions_regex[:-1]
 
-      maybe_ending = re.search(valid_extensions_regex, poss_link, flags=re.IGNORECASE)
+      maybe_ending = re.search(valid_extensions_regex, link, flags=re.IGNORECASE)
 
       if maybe_ending:
         match_pos = maybe_ending.span()
