@@ -1,5 +1,6 @@
 import feedparser
 import shutil
+from typing import Optional
 import podcastparser
 from io import StringIO
 from html.parser import HTMLParser
@@ -40,19 +41,15 @@ class RssFeed():
 
       removed_feed = self.__remove_feed_from_url(feed)
 
-      # TODO restore this Check if feed is vaild URL
-      # parsedUrl = urlparse(feed)
+      # TODO restore this Check if feed is valid URL
+      # parsedUrl = urlparse(removed_feed)
 
-      # Check to see if parsedUrl.scheme, parsedUrl.netloc and parsedUrl.path have values
+      # # Check to see if parsedUrl.scheme, parsedUrl.netloc and parsedUrl.path have values
       # if parsedUrl.scheme == "" or parsedUrl.netloc == "" or parsedUrl.path == "":
       #   # if not, throw an exception
       #   raise Exception("Invalid URL: %s parsed is %s scheme is %s netloc is %s path is %s" % (feed, parsedUrl, parsedUrl.scheme, parsedUrl.netloc, parsedUrl.path))
 
-      # print('  parsing URL ...', end = '')
-      # Parse the feed URL
-      # ProtoNewsFeed = feedparser.parse('feed:' + feed)
-      # NewsFeed = ProtoNewsFeed['feed']
-
+      # print("URLLIB",  urllib.request.urlopen(removed_feed))
       parsedFromParser = podcastparser.parse(removed_feed, urllib.request.urlopen(removed_feed))
 
       # Get the Channel Title
@@ -72,6 +69,7 @@ class RssFeed():
       try:
         ep_count = 1
         pp = pprint.PrettyPrinter(indent=4)
+        
         if parsedFromParser:
           for ep in parsedFromParser["episodes"]:
             # print("~~~~~~~~~~~~~~~~~~~~~~~~~~~EP~~~~~~~~~~~~~~~~~~~~~~",pp.pprint(ep.get("enclosures", 'No Enclosures Found')))
@@ -80,11 +78,12 @@ class RssFeed():
             if ep["title"]:
               found_filename = ep["title"]
             elif parsedFromParser["description"]:
-              found_filename = parsedFromParser["description"] + '-{}'.format(ep_count)
+              found_filename = f"{parsedFromParser['description']} - {ep_count}"
             else:
-              found_filename = " %d " % (ep_count)
+              found_filename = " No Name Found %d " % (ep_count)
             
             filename = self.__sanitize_filename(found_filename)
+            
             print('FILENAME', filename)
             if possible_enclosures:
               list_of_enclosures = ep["enclosures"]
@@ -95,13 +94,12 @@ class RssFeed():
                   ending = self.__check_if_file_is_audio_link(maybe_url)
                   if ending:
                     link = maybe_url
+                    # print("DOWNLOAD", link, "channel", channelTitlePath, "ending", ending)
                     self.__download_file(link, channelTitlePath + "/" + filename + "." + ending)
+                  else:
+                    raise Exception("ERROR FINDING ENDING", ending)
                   last_enclosure = maybe_url
             
-
-            
-
-
             # TODO Get the date and time of publication and if it exists, add it to the
             # titleDateObj = datetime.datetime.strptime(x.published, '%a, %d %b %Y %H:%M:%S %z')
             # filename = channelTitlePath + "/" + str(titleDateObj.date()) + " - " + x.title + ".mp3"
@@ -111,15 +109,16 @@ class RssFeed():
             ep_count = ep_count + 1
             print('done')
       except Exception as error:
-        print('Nested Exception parsedFromParser error', error, 'parsedFromParser', pprint.pformat(parsedFromParser, indent=2, sort_dicts=True))
+        print('Nested Exception parsedFromParser error', error, 'parsedFromParser', #pprint.pformat(parsedFromParser, indent=2, sort_dicts=True)
+        )
 
 
     except Exception as error:
-      print("Error:", error, parsedFromParser, 'catch')
+      print("Error:", error, 'catch')
   
   # NOTE PRIVATE METHODS BELOW
 
-  def __check_if_file_is_audio_link(self, poss_link):
+  def __check_if_file_is_audio_link(self, poss_link: str) -> Optional[str]:
     if poss_link:
       # NOTE list derived from https://en.wikipedia.org/wiki/Audio_file_format
       audio_formats = ["3gp", "aac", "act", "aiff", "alac", "amr", "flac", "m4a", "m4b", "mp3", "mp4", "mpc", "mogg", "oga", "ogg", "tta", "wav", "wv"]
@@ -129,52 +128,58 @@ class RssFeed():
       
       valid_extensions_regex = valid_extensions_regex[:-1]
 
-      # NOTE should return boolean.
-      return bool(re.search(valid_extensions_regex, poss_link, flags=re.IGNORECASE))
+      maybe_ending = re.search(valid_extensions_regex, poss_link, flags=re.IGNORECASE)
+
+      if maybe_ending:
+        match_pos = maybe_ending.span()
+        match = poss_link[match_pos[0]:match_pos[1]]
+        # print("split???", type(maybe_ending), "other", match, type(match))
+        return match
+
+      return None # bool(re.search(valid_extensions_regex, poss_link, flags=re.IGNORECASE))
   
-  def __download_file(self, url, filename):
+  def __download_file(self, url: str, filename: str) -> bool:
     with requests.get(url, stream=True) as r:
           with open(filename, 'wb') as f:
               shutil.copyfileobj(r.raw, f)
     return True
   
-  # def __get_ending(self, linkname):
-  #   if linkname:
-  #     # Handle cases with a query string ie. pod.com/somefile.mp3?=someotherquery
-  #     sanitize_link = linkname.split('/')
-  #     # print('SANITY LINK', sanitize_link)
-  #     sanitized_link = sanitize_link[-1]
-  #     # print('SED~~~~~~~~~~~~~', sanitized_link)
-  #     split_link = sanitized_link.split(".")
-  #     ending = split_link[-1]
-  #     q_mark_found = ending.find("?")
-  #     if q_mark_found != -1:
-  #       remove_querystring = ending.split("?")
-  #       sanitized_ending = remove_querystring[0]
-  #       # print("SANITIZED ENDING FOUND", sanitized_ending)
-  #       return sanitized_ending
-  #     # print('ENDING FOUND', ending)
-  #     return ending
+  def __get_ending(self, linkname):
+    if linkname:
+      # Handle cases with a query string ie. pod.com/somefile.mp3?=someotherquery
+      sanitize_link = linkname.split('/')
+      # print('SANITY LINK', sanitize_link)
+      sanitized_link = sanitize_link[-1]
+      # print('SED~~~~~~~~~~~~~', sanitized_link)
+      split_link = sanitized_link.split(".")
+      ending = split_link[-1]
+      q_mark_found = ending.find("?")
+      if q_mark_found != -1:
+        remove_querystring = ending.split("?")
+        sanitized_ending = remove_querystring[0]
+        # print("SANITIZED ENDING FOUND", sanitized_ending)
+        return sanitized_ending
+      # print('ENDING FOUND', ending)
+      return ending
   
-  def __remove_feed_from_url(self, url):
+  def __remove_feed_from_url(self, url: str) -> str:
     if url:
       try:
         conv_url = str(url)
-        # TODO this could easily be cleaner with regex
 
         check_for_feed = conv_url[0:4].lower()
         print("FEED", check_for_feed)
         if check_for_feed == 'feed':
           new_url = url[5:]
           print('NEW URL', new_url)
-          return new_url
+          return str(new_url)
         else:
           return url
       except Exception as error:
         print('[RssFeed].__remove_feed_from_url - error', error)
         raise Exception(error)
   
-  def __sanitize_filename(self, filename):
+  def __sanitize_filename(self, filename: str) -> str:
     if filename:
       try:
         orig_filename = str(filename)
