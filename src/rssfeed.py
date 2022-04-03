@@ -1,3 +1,4 @@
+from turtle import pu
 import feedparser
 import shutil
 from typing import Optional
@@ -72,22 +73,27 @@ class RssFeed():
         
         if parsedFromParser:
           for ep in parsedFromParser["episodes"]:
-            # print("~~~~~~~~~~~~~~~~~~~~~~~~~~~EP~~~~~~~~~~~~~~~~~~~~~~",pp.pprint(ep.get("enclosures", 'No Enclosures Found')))
+            # print("~~~~~~~~~~~~~~~~~~~~~~~~~~~EP~~~~~~~~~~~~~~~~~~~~~~",pp.pprint(ep))
             possible_enclosures = ep.get("enclosures", None)
             
+            published = self._get_date_if_any(ep)
+
             if ep["title"]:
-              found_filename = ep["title"]
+                found_filename = f"{ep['title']}"
             elif parsedFromParser["description"]:
               found_filename = f"{parsedFromParser['description']} - {ep_count}"
             else:
               found_filename = " No Name Found %d " % (ep_count)
+
+            if published:
+              found_filename = found_filename + "_" + f"{published.date()}" 
             
             filename = self.__sanitize_filename(found_filename)
+             
             
-            print('FILENAME', filename)
+            # print('FILENAME', filename)
             if possible_enclosures:
               list_of_enclosures = ep["enclosures"]
-              # TODO use list comprehension to handle iterating through all but the last one
               last_enclosure = ''
               for enclosure in list_of_enclosures:
                 
@@ -100,17 +106,14 @@ class RssFeed():
                    # print('ending check passed')
                     link = maybe_url
                     # print("DOWNLOAD", link, "channel", channelTitlePath, "ending", ending)
-                    self.__download_file(link, channelTitlePath + "/" + filename + "." + ending)
-                  else:
-                    raise Exception("ERROR FINDING ENDING", ending, list_of_enclosures)
+                    self.__download_file(link, channelTitlePath + "/" + filename + ending)
+                  
                   last_enclosure = maybe_url
             
             # TODO Get the date and time of publication and if it exists, add it to the
-            # titleDateObj = datetime.datetime.strptime(x.published, '%a, %d %b %Y %H:%M:%S %z')
+           
             # filename = channelTitlePath + "/" + str(titleDateObj.date()) + " - " + x.title + ".mp3"
-            # print('  downloading filename: %s ... ' % filename, end = '')
-            # r = requests.get(x.links[0].href, allow_redirects=True)
-            # open(filename, 'wb').write(r.content)
+            
             ep_count = ep_count + 1
             print('done')
       except Exception as error:
@@ -123,17 +126,28 @@ class RssFeed():
   
   # NOTE PRIVATE METHODS BELOW
 
+  def _get_date_if_any(self, ep: dict) -> Optional[str]:
+    maybe_published = ep.get("pubished", None)
+    published = None
+
+    # TODO need to handle different ways of finding the time
+    if maybe_published:
+      published = datetime.datetime.strptime(maybe_published, '%a, %d %b %Y %H:%M:%S %z')
+    
+    return published
+
+
   def __check_if_file_is_audio_link(self, poss_link: str) -> Optional[str]:
     if poss_link:
       link = poss_link
-      print("check if file is audio", poss_link)
+      # print("check if file is audio", poss_link)
       # handles query string cases
       if poss_link.find("?") != -1:
         
         split_link = poss_link.split("?")
         if len(split_link) > 0:
           link = split_link[0]
-        print("poss_link find passed", link, "split", split_link)
+        # print("poss_link find passed", link, "split", split_link)
 
       # NOTE list derived from https://en.wikipedia.org/wiki/Audio_file_format
       audio_formats = ["3gp", "aac", "act", "aiff", "alac", "amr", "flac", "m4a", "m4b", "mp3", "mp4", "mpc", "mogg", "oga", "ogg", "tta", "wav", "wv"]
@@ -183,10 +197,10 @@ class RssFeed():
         conv_url = str(url)
 
         check_for_feed = conv_url[0:4].lower()
-        print("FEED", check_for_feed)
+       # print("FEED", check_for_feed)
         if check_for_feed == 'feed':
           new_url = url[5:]
-          print('NEW URL', new_url)
+          # print('NEW URL', new_url)
           return str(new_url)
         else:
           return url
